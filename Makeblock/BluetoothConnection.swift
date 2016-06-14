@@ -9,6 +9,7 @@
 import Foundation
 import CoreBluetooth
 
+/// An bluetooth device
 public class BluetoothDevice: Device{
     var peripheral: CBPeripheral?
     var RSSI: NSNumber?
@@ -19,7 +20,15 @@ public class BluetoothDevice: Device{
         }
         return -1.0
     }
-    
+
+    /**
+     Create a device using a CBPeripheral 
+     Normally you don't need to init a BluetoothDevice by yourself
+     
+     - parameter peri: the peripheral instance
+     
+     - returns: nil
+     */
     public init(peri: CBPeripheral) {
         super.init()
         peripheral = peri
@@ -30,12 +39,14 @@ public class BluetoothDevice: Device{
     }
 }
 
+/// The bluetooth connection
 public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate, CBPeripheralDelegate {
     
     // Bluetooth Module Characteristics
     let readWriteServiceUUID = "FFE1"
     let readNotifyCharacteristicUUID = "FFE2"
     let writeCharacteristicUUID = "FFE3"
+    /// the maximum length of the package that can be send
     let notifyMTU = 20      // maximum 20 bytes in a single ble package
     
     // CoreBluetooth related

@@ -8,6 +8,7 @@
 
 import Foundation
 
+/// The representation of the value returned from a mBot sensor
 public class SensorValue {
     var numberValue: NSNumber?
     var stringValue: String?
@@ -48,6 +49,7 @@ public class SensorValue {
     
 }
 
+/// The representation of a request sent to read a sensor value
 public class ReadSensorRequest {
     let onRead: (SensorValue) -> Void
     var requestDate: NSDate
@@ -66,6 +68,7 @@ public class ReadSensorRequest {
     }
 }
 
+/// The base class of a Makeblock Robot
 public class MakeblockRobot {
     
     // makeblock protocol constants
@@ -74,6 +77,7 @@ public class MakeblockRobot {
     let suffixA: UInt8 = 0x0d
     let suffixB: UInt8 = 0x0a
     
+    /// an enum of electronic devices (sensors, motors, etc.) 
     public enum DeviceID: UInt8 {
         case DCMotorMove = 0x05
         case DCMotor = 0x0a
@@ -235,6 +239,15 @@ public class MakeblockRobot {
         }
     }
     
+    /**
+     Send a message through the Connection
+     
+     - parameter deviceID:     which device (motors, snesors etc.)
+     - parameter arrayOfBytes: an UInt8 array of additional bytes to send
+     - parameter callback:     if set, it will send a read sensor request and callback when it receives a sensor value
+     
+     - returns: the index of the sent package. Often used in unit tests.
+     */
     func sendMessage(deviceID: DeviceID, arrayOfBytes: [UInt8], callback: ((SensorValue) -> Void)? = nil) -> UInt8 {
         let metaDataLength: UInt8 = 3
         let messageLength: UInt8 = metaDataLength + UInt8(arrayOfBytes.count)

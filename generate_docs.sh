@@ -1,0 +1,12 @@
+jazzy \
+    --clean \
+    --author Wang Yu \
+    --author_url https://www.mit.edu/~wangyu \
+    --github_url https://github.com/Makeblock-official/Makeblock-Swift \
+    --github-file-prefix https://github.com/Makeblock-official/Makeblock-Swift/blob/master \
+    --module-version 1.0 \
+    --xcodebuild-arguments -scheme,Makeblock \
+    --module Makeblock \
+    --root-url http://learn.makeblock.com/en/use-mbot-with-ios-swift/ \
+    --output docs/swift_output \
+    --theme fullwidth
