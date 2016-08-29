@@ -196,6 +196,10 @@ public class MBot: MakeblockRobot {
         }
     }
     
+    public func drawImage() {
+        sendMessage(.LedMatrix, arrayOfBytes: [MBotPorts.Port3.rawValue, 0x03, 0x01, 0x02, 0x03])
+    }
+    
     func IntToUInt8Bytes(value: Int) -> (UInt8, UInt8){
         let lowValue = UInt8(value & 0xff)
         let highValue = UInt8((value >> 8) & 0xff)

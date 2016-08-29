@@ -86,6 +86,7 @@ public class MakeblockRobot {
         case UltrasonicSensor = 0x01
         case LightnessSensor = 0x03
         case LineFollowerSensor = 0x11
+        case LedMatrix = 0x29
     }
     
     public typealias SensorCallback = (SensorValue) -> Void
