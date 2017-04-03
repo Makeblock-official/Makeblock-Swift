@@ -9,7 +9,7 @@
 import Foundation
 
 /// The Class used to control a Makeblock mBot
-public class MBot: MakeblockRobot {
+open class MBot: MakeblockRobot {
     /// which LED Light to set when sending setRGBLED commands
     public enum RGBLEDPosition: UInt8 {
         case all = 0
@@ -19,12 +19,12 @@ public class MBot: MakeblockRobot {
     
     /// an enum of available ports of mBot controller board
     public enum MBotPorts: UInt8 {
-        case RGBLED = 7, Port3 = 3, Port4 = 4, Port1 = 1, Port2 = 2, M1 = 0x09, M2 = 0x0a, LightnessSensor = 0x06
+        case rgbled = 7, port3 = 3, port4 = 4, port1 = 1, port2 = 2, m1 = 0x09, m2 = 0x0a, lightnessSensor = 0x06
     }
     
     /// an enum of music note pitch -> frequencies
     public enum MusicNotePitch: Int {
-        case C2=65, D2=73, E2=82, F2=87, G2=98, A2=110, B2=123, C3=131, D3=147, E3=165, F3=175, G3=196, A3=220, B3=247, C4=262, D4=294, E4=330, F4=349, G4=392, A4=440, B4=494, C5=523, D5=587, E5=658, F5=698, G5=784, A5=880, B5=988, C6=1047, D6=1175, E6=1319, F6=1397, G6=1568, A6=1760, B6=1976, C7=2093, D7=2349, E7=2637, F7=2794, G7=3136, A7=3520, B7=3951, C8=4186
+        case c2=65, d2=73, e2=82, f2=87, g2=98, a2=110, b2=123, c3=131, d3=147, e3=165, f3=175, g3=196, a3=220, b3=247, c4=262, d4=294, e4=330, f4=349, g4=392, a4=440, b4=494, c5=523, d5=587, e5=658, f5=698, g5=784, a5=880, b5=988, c6=1047, d6=1175, e6=1319, f6=1397, g6=1568, a6=1760, b6=1976, c7=2093, d7=2349, e7=2637, f7=2794, g7=3136, a7=3520, b7=3951, c8=4186
     }
     
     /// an enum of music note duration -> milliseconds
@@ -34,7 +34,7 @@ public class MBot: MakeblockRobot {
     
     /// an enum of line-follower sensor status.
     public enum LineFollowerSensorStatus: Float {
-        case LeftBlackRightBlack=0.0, LeftBlackRightWhite=1.0, LeftWhiteRightBlack=2.0, LeftWhiteRightWhite=3.0
+        case leftBlackRightBlack=0.0, leftBlackRightWhite=1.0, leftWhiteRightBlack=2.0, leftWhiteRightWhite=3.0
     }
     
     /**
@@ -54,10 +54,10 @@ public class MBot: MakeblockRobot {
      - parameter leftMotor:  speed of the left motor, -255~255
      - parameter rightMotor: speed of the right motor, -255~255
      */
-    public func setMotors(leftMotor: Int, rightMotor: Int) {
+    open func setMotors(_ leftMotor: Int, rightMotor: Int) {
         let (leftLow, leftHigh) = IntToUInt8Bytes(leftMotor)
         let (rightLow, rightHigh) = IntToUInt8Bytes(rightMotor)
-        sendMessage(.DCMotorMove, arrayOfBytes: [leftLow, leftHigh, rightLow, rightHigh])
+        let _ = sendMessage(.dcMotorMove, arrayOfBytes: [leftLow, leftHigh, rightLow, rightHigh])
         
     }
     
@@ -67,9 +67,9 @@ public class MBot: MakeblockRobot {
      - parameter port:  which port the motor is connect to. .M1 or .M2
      - parameter speed: the speed of the motor -255~255
      */
-    public func setMotor(port: MBotPorts, speed: Int){
+    open func setMotor(_ port: MBotPorts, speed: Int){
         let (low, high) = IntToUInt8Bytes(speed)
-        sendMessage(.DCMotor, arrayOfBytes: [port.rawValue, low, high])
+        let _ = sendMessage(.dcMotor, arrayOfBytes: [port.rawValue, low, high])
     }
     
     /**
@@ -77,7 +77,7 @@ public class MBot: MakeblockRobot {
      
      - parameter speed: the speed of moving. -255~255
      */
-    public func moveForward(speed: Int){
+    open func moveForward(_ speed: Int){
         setMotors(-speed, rightMotor: speed)
     }
     
@@ -86,7 +86,7 @@ public class MBot: MakeblockRobot {
      
      - parameter speed: the speed of moving. -255~255
      */
-    public func moveBackward(speed: Int){
+    open func moveBackward(_ speed: Int){
         setMotors(speed, rightMotor: -speed)
     }
     
@@ -95,7 +95,7 @@ public class MBot: MakeblockRobot {
      
      - parameter speed: the speed of moving. -255~255
      */
-    public func turnLeft(speed: Int){
+    open func turnLeft(_ speed: Int){
         setMotors(speed, rightMotor: speed)
     }
     
@@ -104,14 +104,14 @@ public class MBot: MakeblockRobot {
      
      - parameter speed: the speed of moving. -255~255
      */
-    public func turnRight(speed: Int){
+    open func turnRight(_ speed: Int){
         setMotors(-speed, rightMotor: -speed)
     }
     
     /**
      Tell the mBot to stop moving
      */
-    public func stopMoving(){
+    open func stopMoving(){
         setMotors(0, rightMotor: 0)
     }
     
@@ -123,8 +123,8 @@ public class MBot: MakeblockRobot {
      - parameter green:    green value (0~255)
      - parameter blue:     blue value (0~255)
      */
-    public func setRGBLED(position: RGBLEDPosition, red: Int, green: Int, blue: Int){
-        sendMessage(.RGBLED, arrayOfBytes: [MBotPorts.RGBLED.rawValue, 0x02, position.rawValue,
+    open func setRGBLED(_ position: RGBLEDPosition, red: Int, green: Int, blue: Int){
+        let _ = sendMessage(.rgbled, arrayOfBytes: [MBotPorts.rgbled.rawValue, 0x02, position.rawValue,
             UInt8(red), UInt8(green), UInt8(blue)])
     }
     
@@ -134,10 +134,10 @@ public class MBot: MakeblockRobot {
      - parameter pitch:    pitch value eg. .C4 .E4
      - parameter duration: duration. Could be .full, .half, .quarter, .eighth, or .sixteenth
      */
-    public func setBuzzer(pitch: MusicNotePitch, duration: MusicNoteDuration) {
+    open func setBuzzer(_ pitch: MusicNotePitch, duration: MusicNoteDuration) {
         let (pitchLow, pitchHigh) = IntToUInt8Bytes(pitch.rawValue)
         let (durationLow, durationHigh) = IntToUInt8Bytes(duration.rawValue)
-        sendMessage(.Buzzer, arrayOfBytes: [pitchLow, pitchHigh, durationLow, durationHigh])
+        let _ = sendMessage(.buzzer, arrayOfBytes: [pitchLow, pitchHigh, durationLow, durationHigh])
     }
     
     /**
@@ -152,8 +152,8 @@ public class MBot: MakeblockRobot {
      - parameter port:     which port the sensor is connected to. By default .Port3
      - parameter callback: a block of code executed after we have a value. Receive a Float as the argument.
      */
-    public func getUltrasonicSensorValue(port: MBotPorts = .Port3, callback: ((Float) -> Void)) {
-        sendMessage(.UltrasonicSensor, arrayOfBytes: [port.rawValue]) { value in
+    open func getUltrasonicSensorValue(_ port: MBotPorts = .port3, callback: @escaping ((Float) -> Void)) {
+        let _ = sendMessage(.ultrasonicSensor, arrayOfBytes: [port.rawValue]) { value in
             callback(value.floatValue)
         }
     }
@@ -170,8 +170,8 @@ public class MBot: MakeblockRobot {
      - parameter port:     which port the sensor is connected to. By default .LightnessSensor (on board sensor)
      - parameter callback: a block of code executed after we have a value. Receive a Float as the argument.
      */
-    public func getLightnessSensorValue(port: MBotPorts = .LightnessSensor, callback: ((Float) -> Void)) {
-        sendMessage(.LightnessSensor, arrayOfBytes: [port.rawValue]) { value in
+    open func getLightnessSensorValue(_ port: MBotPorts = .lightnessSensor, callback: @escaping ((Float) -> Void)) {
+        let _ = sendMessage(.lightnessSensor, arrayOfBytes: [port.rawValue]) { value in
             callback(value.floatValue)
         }
     }
@@ -190,13 +190,13 @@ public class MBot: MakeblockRobot {
      - parameter port:     which port the sensor is connected to. By default .Port2 (on board sensor)
      - parameter callback: a block of code executed after we have a value. Receive a LineFollowerSensorStatus as the argument.
      */
-    public func getLinefollowerSensorValue(port: MBotPorts = .Port2, callback:((LineFollowerSensorStatus) -> Void)) {
-        sendMessage(.LineFollowerSensor, arrayOfBytes: [port.rawValue]) { value in
+    open func getLinefollowerSensorValue(_ port: MBotPorts = .port2, callback:@escaping ((LineFollowerSensorStatus) -> Void)) {
+        let _ = sendMessage(.lineFollowerSensor, arrayOfBytes: [port.rawValue]) { value in
             callback(LineFollowerSensorStatus.init(rawValue: value.floatValue)!)
         }
     }
     
-    func IntToUInt8Bytes(value: Int) -> (UInt8, UInt8){
+    func IntToUInt8Bytes(_ value: Int) -> (UInt8, UInt8){
         let lowValue = UInt8(value & 0xff)
         let highValue = UInt8((value >> 8) & 0xff)
         return (lowValue, highValue)

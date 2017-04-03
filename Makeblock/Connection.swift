@@ -9,11 +9,11 @@
 import Foundation
 
 /// A representation for (bluetooth or 2.4G) device associated with a mBot
-public class Device {
+open class Device {
     /// The name of the robot
-    public var name = ""
+    open var name = ""
     /// the distance from the robot to the iOS/OSX device
-    public var distance: Float = 0.0
+    open var distance: Float = 0.0
     
     public init () {
         
@@ -36,7 +36,7 @@ public protocol Connection {
     var onAvailableDevicesChanged: (([Device]) -> Void)? { get set }
     
     /// Callback when the connect received data
-    var onReceive: ((NSData) -> Void)? { get set }
+    var onReceive: ((Data) -> Void)? { get set }
     
     /**
      start discovering devices
@@ -49,7 +49,7 @@ public protocol Connection {
     func stopDiscovery()
     
     // conenct a device, and get notified when connected
-    func connect(device: Device)
+    func connect(_ device: Device)
     
     /**
      try to connect to a random device
@@ -64,7 +64,7 @@ public protocol Connection {
      
      - parameter data: the data to be sent
      */
-    func send(data: NSData)
+    func send(_ data: Data)
     
 }
 
