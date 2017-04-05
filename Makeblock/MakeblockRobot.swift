@@ -9,13 +9,13 @@
 import Foundation
 
 /// The representation of the value returned from a mBot sensor
-public class SensorValue {
+open class SensorValue {
     var numberValue: NSNumber?
     var stringValue: String?
     
-    public var intValue: Int {
+    open var intValue: Int {
         get {
-            if let intVal: Int = numberValue?.integerValue {
+            if let intVal: Int = numberValue?.intValue {
                 return intVal
             }
             else{
@@ -24,7 +24,7 @@ public class SensorValue {
         }
     }
     
-    public var floatValue: Float {
+    open var floatValue: Float {
         get{
             if let floatVal: Float = numberValue?.floatValue {
                 return floatVal
@@ -36,11 +36,11 @@ public class SensorValue {
     }
     
     init(intValue: Int) {
-        numberValue = intValue
+        numberValue = intValue as NSNumber
     }
     
     init(floatValue: Float) {
-        numberValue = floatValue
+        numberValue = floatValue as NSNumber
     }
     
     init(string: String){
@@ -50,13 +50,13 @@ public class SensorValue {
 }
 
 /// The representation of a request sent to read a sensor value
-public class ReadSensorRequest {
+open class ReadSensorRequest {
     let onRead: (SensorValue) -> Void
-    var requestDate: NSDate
+    var requestDate: Date
     
-    init(callback: (SensorValue) -> Void) {
+    init(callback: @escaping (SensorValue) -> Void) {
         onRead = callback
-        requestDate = NSDate()
+        requestDate = Date()
     }
     
     func isExpired() -> Bool {
@@ -64,12 +64,12 @@ public class ReadSensorRequest {
     }
     
     func refresh() {
-        requestDate = NSDate()
+        requestDate = Date()
     }
 }
 
 /// The base class of a Makeblock Robot
-public class MakeblockRobot {
+open class MakeblockRobot {
     
     // makeblock protocol constants
     let prefixA: UInt8 = 0xff
@@ -79,13 +79,14 @@ public class MakeblockRobot {
     
     /// an enum of electronic devices (sensors, motors, etc.) 
     public enum DeviceID: UInt8 {
-        case DCMotorMove = 0x05
-        case DCMotor = 0x0a
-        case RGBLED = 0x08
-        case Buzzer = 0x22
-        case UltrasonicSensor = 0x01
-        case LightnessSensor = 0x03
-        case LineFollowerSensor = 0x11
+        case dcMotorMove = 0x05
+        case dcMotor = 0x0a
+        case rgbled = 0x08
+        case buzzer = 0x22
+        case ultrasonicSensor = 0x01
+        case lightnessSensor = 0x03
+        case lineFollowerSensor = 0x11
+        case ledMatrix = 0x29
     }
     
     public typealias SensorCallback = (SensorValue) -> Void
@@ -93,20 +94,20 @@ public class MakeblockRobot {
     var connection: Connection
     
     // the user of MakeblockRobot instances may attach one additional receive data callback.
-    var onReceiveData: ((NSData) -> Void)?
+    var onReceiveData: ((Data) -> Void)?
     var readSensorRequests: [UInt8: ReadSensorRequest] = [:]
     var receiveIndex: UInt8 = 0
     
     enum ReceiveStateMachineStates {
-        case PrefixA, PrefixB, Index, DataType, Payload, SuffixA, SuffixB
+        case prefixA, prefixB, index, dataType, payload, suffixA, suffixB
     }
     enum ReceiveDataTypes: UInt8 {
-        case SingleByte = 1, Float = 2, Short = 3, String = 4, Double = 5, Long = 6
+        case singleByte = 1, float = 2, short = 3, string = 4, double = 5, long = 6
     }
-    var receiveSMStatus: ReceiveStateMachineStates = .PrefixA
-    let expecetedPayloadCounts: [ReceiveDataTypes: UInt8] = [.SingleByte: 1, .Float: 4, .Short: 2, .Double: 4, .Long: 4]
+    var receiveSMStatus: ReceiveStateMachineStates = .prefixA
+    let expecetedPayloadCounts: [ReceiveDataTypes: UInt8] = [.singleByte: 1, .float: 4, .short: 2, .double: 4, .long: 4]
     var remainingPayloadLength: UInt8 = 0
-    var receiveDataType: ReceiveDataTypes = .SingleByte
+    var receiveDataType: ReceiveDataTypes = .singleByte
     var receivedPayloads: [UInt8] = []
     
     // index is for identifying each "read sensor" type of request;
@@ -135,31 +136,31 @@ public class MakeblockRobot {
     /// A state machine is used to parse the returning data.
     /// for writing commands, will receive FF 55 0D 0A, and since 0x0a is not a data type,
     /// this will result in a parse failure and be ignored.
-    func onReceive(data: NSData) {
-        var receivedBytes = [UInt8](count: data.length, repeatedValue: 0)
-        data.getBytes(&receivedBytes, length: data.length)
+    func onReceive(_ data: Data) {
+        var receivedBytes = [UInt8](repeating: 0, count: data.count)
+        (data as NSData).getBytes(&receivedBytes, length: data.count)
         for byte in receivedBytes {
             switch receiveSMStatus {
-            case .PrefixA:
+            case .prefixA:
                 if byte == prefixA {
-                    receiveSMStatus = .PrefixB
+                    receiveSMStatus = .prefixB
                 }
-            case .PrefixB:
+            case .prefixB:
                 if byte == prefixB {
-                    receiveSMStatus = .Index
+                    receiveSMStatus = .index
                 }
                 else{
-                    receiveSMStatus = .PrefixA  // parse failure, resetting
+                    receiveSMStatus = .prefixA  // parse failure, resetting
                 }
-            case .Index:
+            case .index:
                 receiveIndex = byte
-                receiveSMStatus = .DataType
-            case .DataType:
+                receiveSMStatus = .dataType
+            case .dataType:
                 if let dataType = ReceiveDataTypes(rawValue: byte) {
                     receiveDataType = dataType
-                    receiveSMStatus = .Payload
+                    receiveSMStatus = .payload
                     receivedPayloads = []   // prepare to receive payloads
-                    if dataType != .String {
+                    if dataType != .string {
                         // use a table to determine the payload length
                         remainingPayloadLength = expecetedPayloadCounts[dataType]!
                     }
@@ -171,12 +172,12 @@ public class MakeblockRobot {
                     }
                 }
                 else{
-                    receiveSMStatus = .PrefixA // parse failure, resetting
+                    receiveSMStatus = .prefixA // parse failure, resetting
                 }
-            case .Payload:
+            case .payload:
                 // in String type, the first character is for length
                 if remainingPayloadLength > 0 {
-                    if receiveDataType == .String {
+                    if receiveDataType == .string {
                         if receivedPayloads.count == 0 {
                             remainingPayloadLength = byte
                         }
@@ -191,46 +192,46 @@ public class MakeblockRobot {
                     }
                 }
                 if remainingPayloadLength <= 0 {
-                    receiveSMStatus = .SuffixA
+                    receiveSMStatus = .suffixA
                 }
-            case .SuffixA:
+            case .suffixA:
                 if byte == suffixA {
-                    receiveSMStatus = .SuffixB
+                    receiveSMStatus = .suffixB
                 }
                 else{
-                    receiveSMStatus = .PrefixA
+                    receiveSMStatus = .prefixA
                 }
-            case .SuffixB:
+            case .suffixB:
                 // parse received bytes, according to their respected types
                 if let request = readSensorRequests[receiveIndex] {
                     switch receiveDataType {
-                    case .SingleByte:
+                    case .singleByte:
                         request.onRead(SensorValue(intValue: Int(receivedPayloads[0])))
-                    case .Float:
+                    case .float:
                         fallthrough
-                    case .Double:
+                    case .double:
                         // in Makeblock's MCU definition, Double is the same as Float;
                         // Then convert 4 bytes to a float value.
                         var f: Float = 0.0
                         memcpy(&f, receivedPayloads, 4)
                         request.onRead(SensorValue(floatValue: f))
                         receivedPayloads = []
-                    case .Short:
+                    case .short:
                         let value: Int = (Int(receivedPayloads[1]) << 8) | Int(receivedPayloads[0])
                         request.onRead(SensorValue(intValue: Int(value)))
-                    case .Long:
+                    case .long:
                         let value: Int = (Int(receivedPayloads[3]) << 24) | (Int(receivedPayloads[2]) << 16) |
                                          (Int(receivedPayloads[1]) << 8) | Int(receivedPayloads[0])
                         request.onRead(SensorValue(intValue: Int(value)))
-                    case .String:
+                    case .string:
                         let resultString = NSString(bytes: receivedPayloads, length: receivedPayloads.count,
-                                                    encoding: NSUTF8StringEncoding) as! String
+                                                    encoding: String.Encoding.utf8.rawValue) as! String
                         request.onRead(SensorValue(string: resultString))
                     }
                     // the reading request is fulfilled. Remove from the pending request list.
-                    readSensorRequests.removeValueForKey(receiveIndex)
+                    readSensorRequests.removeValue(forKey: receiveIndex)
                 }
-                receiveSMStatus = .PrefixA
+                receiveSMStatus = .prefixA
             }
         }
         // if there are additional callbacks, run them.
@@ -248,7 +249,7 @@ public class MakeblockRobot {
      
      - returns: the index of the sent package. Often used in unit tests.
      */
-    func sendMessage(deviceID: DeviceID, arrayOfBytes: [UInt8], callback: ((SensorValue) -> Void)? = nil) -> UInt8 {
+    func sendMessage(_ deviceID: DeviceID, arrayOfBytes: [UInt8], callback: ((SensorValue) -> Void)? = nil) -> UInt8 {
         let metaDataLength: UInt8 = 3
         let messageLength: UInt8 = metaDataLength + UInt8(arrayOfBytes.count)
         let readWriteByte: UInt8 = callback != nil ? 1 : 2
@@ -264,8 +265,8 @@ public class MakeblockRobot {
             readSensorRequests[index] = ReadSensorRequest(callback: cb)
         }
         var finishedBytes: [UInt8] = [prefixA, prefixB, messageLength, index, readWriteByte, deviceID.rawValue]
-        finishedBytes.appendContentsOf(arrayOfBytes)
-        connection.send(NSData(bytes: finishedBytes, length: finishedBytes.count))
+        finishedBytes.append(contentsOf: arrayOfBytes)
+        connection.send(Data(bytes: UnsafePointer<UInt8>(finishedBytes), count: finishedBytes.count))
         return index
     }
     

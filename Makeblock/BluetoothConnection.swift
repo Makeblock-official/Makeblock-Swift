@@ -10,7 +10,7 @@ import Foundation
 import CoreBluetooth
 
 /// An bluetooth device
-public class BluetoothDevice: Device{
+open class BluetoothDevice: Device{
     var peripheral: CBPeripheral?
     var RSSI: NSNumber?
 
@@ -40,7 +40,7 @@ public class BluetoothDevice: Device{
 }
 
 /// The bluetooth connection
-public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate, CBPeripheralDelegate {
+open class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate, CBPeripheralDelegate {
     
     // Bluetooth Module Characteristics
     let readWriteServiceUUID = "FFE1"
@@ -58,25 +58,25 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
     
     // Connection related
     var deviceList: [BluetoothDevice] = []
-    public var onConnect: (() -> Void)?
-    public var onDisconnect: (() -> Void)?
-    public var onReceive: ((NSData) -> Void)?
-    public var onAvailableDevicesChanged: (([Device]) -> Void)?
+    open var onConnect: (() -> Void)?
+    open var onDisconnect: (() -> Void)?
+    open var onReceive: ((Data) -> Void)?
+    open var onAvailableDevicesChanged: (([Device]) -> Void)?
     var isConnectingDefaultDevice = false
     
     override public init () {
         super.init()
-        centralManager = CBCentralManager(delegate: self, queue: dispatch_get_main_queue())
+        centralManager = CBCentralManager(delegate: self, queue: DispatchQueue.main)
     }
     
     // Connection Methods
     /// Start scanning Bluetooth devices
-    public func startDiscovery() {
-        centralManager?.scanForPeripheralsWithServices(nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: 0])
+    open func startDiscovery() {
+        centralManager?.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: 0])
     }
     
     /// Stop scanning Bluetooth devices
-    public func stopDiscovery() {
+    open func stopDiscovery() {
         centralManager?.stopScan()
     }
     
@@ -87,19 +87,18 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
     }
     
     /// Connect to a bluetooth device
-    public func connect(device: Device) {
+    open func connect(_ device: Device) {
         if let bluetoothDevice = device as? BluetoothDevice {
-            centralManager?.connectPeripheral(bluetoothDevice.peripheral!, options: nil)
+            centralManager?.connect(bluetoothDevice.peripheral!, options: nil)
             stopDiscovery()
         }
     }
     
     /// TODO: Connect to the nearest bluetooth device after 5 seconds
-    public func connectDefaultDevice() {
+    open func connectDefaultDevice() {
         isConnectingDefaultDevice = true;
         startDiscovery()
-        let time = dispatch_time(dispatch_time_t(DISPATCH_TIME_NOW), 5 * Int64(NSEC_PER_SEC))
-        dispatch_after(time, dispatch_get_main_queue()) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) {
             // connect to the nearest devices after 5 seconds
             if self.deviceList.count > 0 {
                 self.connect(self.deviceList[0])
@@ -107,28 +106,30 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    public func disconnect() {
+    open func disconnect() {
         if let peripheral = activePeripheral {
             centralManager?.cancelPeripheralConnection(peripheral)
             resetDiscovery()
         }
     }
     
-    public func send(data: NSData) {
+    open func send(_ data: Data) {
         if let peripheral = activePeripheral {
-            if peripheral.state == .Connected {
+            if peripheral.state == .connected {
                 if let characteristic = writeCharacteristic {
                     var sendIndex = 0
                     while true {
-                        var amountToSend = data.length - sendIndex
+                        var amountToSend = data.count - sendIndex
                         if amountToSend > notifyMTU {
                             amountToSend = notifyMTU
                         }
                         if amountToSend <= 0 {
                             return;
                         }
-                        let dataChunk = NSData(bytes: data.bytes+sendIndex, length: amountToSend)
-                        peripheral.writeValue(dataChunk, forCharacteristic: characteristic, type: .WithoutResponse)
+                        let p: UnsafePointer = ((data as NSData).bytes+sendIndex).assumingMemoryBound(to: UInt8.self)
+                        let dataChunk = Data(bytes: p, count: amountToSend)
+                        
+                        peripheral.writeValue(dataChunk, for: characteristic, type: .withoutResponse)
                         sendIndex += amountToSend
                     }
                 }
@@ -137,9 +138,9 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
     }
     
     // CoreBluetooth Methods
-    public func centralManagerDidUpdateState(central: CBCentralManager) {
+    open func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if centralManager!.isEqual(central) {
-            if central.state == .PoweredOn {
+            if central.state == .poweredOn {
                 startDiscovery()
             }
             else{
@@ -148,7 +149,7 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    public func centralManager(central: CBCentralManager, didDiscoverPeripheral peripheral: CBPeripheral, advertisementData: [String : AnyObject], RSSI: NSNumber) {
+    open func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         if centralManager!.isEqual(central) {
             if !peripherals.contains(peripheral) {
                 if let name = peripheral.name {
@@ -168,7 +169,7 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
                         
                         // order devices according to their distance to the user
                         if deviceList.count > 1 {
-                            deviceList.sortInPlace() { $0.distanceByRSSI() < $1.distanceByRSSI() }
+                            deviceList.sort() { $0.distanceByRSSI() < $1.distanceByRSSI() }
                         }
                         
                         if let callback = onAvailableDevicesChanged {
@@ -181,11 +182,11 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
     }
     
     /// Connected says central manager
-    public func centralManager(central: CBCentralManager, didConnectPeripheral peripheral: CBPeripheral) {
+    open func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         if centralManager!.isEqual(central) {
             if !peripherals.contains(peripheral) {
                 peripherals.append(peripheral)
-                print("added undiscovered peripheral \(peripheral.identifier.UUIDString)")
+                print("added undiscovered peripheral \(peripheral.identifier.uuidString)")
             }
             
             activePeripheral = peripheral
@@ -195,25 +196,25 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
     }
     
     /// TODO: Fail to connect says central manager
-    public func centralManager(central: CBCentralManager, didFailToConnectPeripheral peripheral: CBPeripheral, error: NSError?) {
+    open func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("failed to connect peripheral")
     }
     
     /// Disconnected says central manager
-    public func centralManager(central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: NSError?) {
+    open func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         if let callback = onDisconnect {
             callback()
         }
     }
     
     /// Service discovered
-    public func peripheral(peripheral: CBPeripheral, didDiscoverServices error: NSError?) {
+    open func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if peripheral.isEqual(activePeripheral) {
             if let services = peripheral.services {
                 for service in services {
-                    print ("discovered service \(service.UUID)")
-                    if service.UUID.isEqual(CBUUID(string: readWriteServiceUUID)) {
-                        peripheral.discoverCharacteristics(nil, forService: service)
+                    print ("discovered service \(service.uuid)")
+                    if service.uuid.isEqual(CBUUID(string: readWriteServiceUUID)) {
+                        peripheral.discoverCharacteristics(nil, for: service)
                     }
                 }
             }
@@ -229,16 +230,16 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    public func peripheral(peripheral: CBPeripheral, didDiscoverCharacteristicsForService service: CBService, error: NSError?) {
+    open func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if peripheral.isEqual(activePeripheral) {
             if let characteristics = service.characteristics {
                 for characteristic in characteristics {
-                    if characteristic.UUID.isEqual(CBUUID(string: writeCharacteristicUUID)) {
+                    if characteristic.uuid.isEqual(CBUUID(string: writeCharacteristicUUID)) {
                         writeCharacteristic = characteristic
                         checkAndNotifyIfConnected()
                     }
-                    else if characteristic.UUID.isEqual(CBUUID(string: readNotifyCharacteristicUUID)) {
-                        peripheral.setNotifyValue(true, forCharacteristic: characteristic)
+                    else if characteristic.uuid.isEqual(CBUUID(string: readNotifyCharacteristicUUID)) {
+                        peripheral.setNotifyValue(true, for: characteristic)
                         notifyReady = true
                         checkAndNotifyIfConnected()
                     }
@@ -247,10 +248,10 @@ public class BluetoothConnection: NSObject, Connection, CBCentralManagerDelegate
         }
     }
     
-    public func peripheral(peripheral: CBPeripheral, didUpdateValueForCharacteristic characteristic: CBCharacteristic, error: NSError?) {
+    open func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         if (error == nil) {
             if peripheral.isEqual(activePeripheral) {
-                if characteristic.UUID.isEqual(CBUUID(string: readNotifyCharacteristicUUID)) {
+                if characteristic.uuid.isEqual(CBUUID(string: readNotifyCharacteristicUUID)) {
                     if let callback = onReceive {
                         if let value = characteristic.value{
                             callback(value)
